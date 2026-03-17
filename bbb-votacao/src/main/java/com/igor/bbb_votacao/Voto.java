@@ -27,4 +27,12 @@ public class Voto {
 
     public Participante getParticipante() { return participante; }
     public void setParticipante(Participante participante) { this.participante = participante; }
+    // Diz ao Java que "Muitos votos pertencem a Um usuário"
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
+    // Não esqueça de adicionar os Getters e Setters para o usuário lá embaixo!
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 }

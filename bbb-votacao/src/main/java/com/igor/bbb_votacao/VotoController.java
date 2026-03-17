@@ -4,34 +4,46 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/votos")
-@CrossOrigin(origins = "*") // Permite acesso do nosso futuro Front-end
+@CrossOrigin(origins = "*")
 public class VotoController {
 
     private final VotoRepository votoRepository;
     private final ParticipanteRepository participanteRepository;
+    private final UsuarioRepository usuarioRepository; // Adicionamos o garçom de usuários
 
-    // Injetando as ferramentas que vão salvar no banco
-    public VotoController(VotoRepository votoRepository, ParticipanteRepository participanteRepository) {
+    // Atualizamos o construtor para injetar os 3 repositórios
+    public VotoController(VotoRepository votoRepository, ParticipanteRepository participanteRepository, UsuarioRepository usuarioRepository) {
         this.votoRepository = votoRepository;
         this.participanteRepository = participanteRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    // A rota será algo como: POST http://localhost:8081/votos/1
-    @PostMapping("/{participanteId}")
-    public Voto registrarVoto(@PathVariable Integer participanteId) {
-        // 1. Busca quem é o participante número 1 (ou 2)
-        Participante p = participanteRepository.findById(participanteId).orElseThrow();
+    // Agora a rota pede os dois IDs: em QUEM votou e QUEM votou
+    // Exemplo: POST http://localhost:8081/votos/1/2 (Usuário 2 votando no Participante 1)
+    @PostMapping("/{participanteId}/{usuarioId}")
+    public Voto registrarVoto(@PathVariable Integer participanteId, @PathVariable Integer usuarioId) {
         
-        // 2. Cria um voto novo e vincula a esse participante
+        Participante p = participanteRepository.findById(participanteId).orElseThrow();
+        Usuario u = usuarioRepository.findById(usuarioId).orElseThrow(); // Busca quem é o eleitor
+        
         Voto novoVoto = new Voto();
         novoVoto.setParticipante(p);
+        novoVoto.setUsuario(u); // Amarramos o voto ao usuário!
         
-        // 3. Salva no banco de dados!
         return votoRepository.save(novoVoto);
     }
-    // Nova rota para o Front-end perguntar: "Quantos votos o participante X tem?"
+
     @GetMapping("/contagem/{participanteId}")
     public Long contarVotos(@PathVariable Integer participanteId) {
         return votoRepository.countByParticipanteId(participanteId);
+    }
+
+    @GetMapping("/porcentagem/{participanteId}")
+    public Double calcularPorcentagem(@PathVariable Integer participanteId) {
+        long totalVotosGerais = votoRepository.count(); 
+        if (totalVotosGerais == 0) return 0.0;
+        
+        long votosDoParticipante = votoRepository.countByParticipanteId(participanteId);
+        return (votosDoParticipante * 100.0) / totalVotosGerais;
     }
 }
