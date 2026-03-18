@@ -21,8 +21,14 @@ public class LoginController {
         Optional<Usuario> usuarioEncontrado = repository.findByEmailAndSenha(dadosLogin.getEmail(), dadosLogin.getSenha());
         
         if (usuarioEncontrado.isPresent()) {
-            // Se achou, devolve os dados do usuário (com o perfil ADMIN ou ELEITOR)
-            return ResponseEntity.ok(usuarioEncontrado.get());
+            // Pegamos o usuário encontrado
+            Usuario usuarioSeguro = usuarioEncontrado.get();
+            
+            // PROTEÇÃO: Limpamos a senha antes de devolver para o front-end
+            usuarioSeguro.setSenha(null); 
+            
+            // Devolve os dados do usuário (agora sem a senha, mas com o perfil ADMIN ou ELEITOR)
+            return ResponseEntity.ok(usuarioSeguro);
         } else {
             // Se não achou, devolve erro 401 (Não Autorizado)
             return ResponseEntity.status(401).body("E-mail ou senha incorretos!");
