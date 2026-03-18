@@ -2,6 +2,7 @@ package com.igor.bbb_votacao;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -48,9 +49,9 @@ public class UsuarioController {
         }
     }
 
-    // ==========================================
+   
     // 3. NOVA ROTA: BUSCAR USUÁRIO POR ID
-    // ==========================================
+    
     @GetMapping("/{id}")
     public ResponseEntity<?> buscarUsuarioPorId(@PathVariable Integer id) {
         try {
@@ -59,6 +60,43 @@ public class UsuarioController {
             return ResponseEntity.ok(usuario);
         } catch (Exception e) {
             return ResponseEntity.status(404).body("Usuário não encontrado");
+        }
+    }
+    // ==========================================
+    // NOVA ROTA: ALTERAR SENHA
+    // ==========================================
+    @PutMapping("/{id}/senha")
+    public ResponseEntity<?> alterarSenha(@PathVariable Integer id, @RequestBody Map<String, String> senhas) {
+        try {
+            Usuario usuario = repository.findById(id).orElseThrow();
+            
+            String senhaAtual = senhas.get("senhaAtual");
+            String novaSenha = senhas.get("novaSenha");
+
+            // Verifica se a senha atual que ele digitou bate com a do banco
+            if (!usuario.getSenha().equals(senhaAtual)) {
+                return ResponseEntity.status(400).body("Senha atual incorreta.");
+            }
+
+            // Se bater, atualiza para a nova
+            usuario.setSenha(novaSenha);
+            repository.save(usuario);
+            
+            return ResponseEntity.ok("Senha alterada com sucesso!");
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body("Usuário não encontrado.");
+        }
+    }
+
+    // NOVA ROTA: EXCLUIR CONTA
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> excluirConta(@PathVariable Integer id) {
+        try {
+            repository.deleteById(id);
+            return ResponseEntity.ok("Conta excluída com sucesso.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro ao excluir conta.");
         }
     }
 }
