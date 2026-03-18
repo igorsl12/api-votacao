@@ -1,6 +1,12 @@
 package com.igor.bbb_votacao;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/votos")
@@ -45,5 +51,49 @@ public class VotoController {
         
         long votosDoParticipante = votoRepository.countByParticipanteId(participanteId);
         return (votosDoParticipante * 100.0) / totalVotosGerais;
+    }
+
+    // ========================== 
+    // HISTÓRICO COM DATA E HORA
+    // ========================== 
+    @GetMapping("/historico")
+    public ResponseEntity<Map<String, Long>> obterHistoricoVotos() {
+        
+        List<Voto> todosVotos = votoRepository.findAll();
+
+        // MUDANÇA AQUI: Adicionamos o dia (dd) e o mês (MM) antes da hora!
+        // O resultado agora será algo como: "18/03 - 14:00"
+        DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM - HH:00");
+
+        Map<String, Long> historicoAgrupado = todosVotos.stream()
+                .filter(voto -> voto.getDataHora() != null) 
+                .collect(Collectors.groupingBy(
+                        voto -> voto.getDataHora().format(formatador),
+                        TreeMap::new, // Mantém a ordem cronológica
+                        Collectors.counting() 
+                ));
+
+        return ResponseEntity.ok(historicoAgrupado);
+        
+    }
+    
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<?> buscarVotosDoUsuario(@PathVariable Integer usuarioId) {
+        
+        // Busca no banco apenas os votos desse usuário específico
+        List<Voto> votosDoUsuario = votoRepository.findByUsuarioId(usuarioId);
+
+        // Formata os dados para enviar um JSON limpo pro Front-end
+        DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
+
+        List<Map<String, Object>> historicoFormatado = votosDoUsuario.stream().map(voto -> {
+            Map<String, Object> dados = new TreeMap<>();
+            dados.put("idVoto", voto.getId());
+            dados.put("nomeCandidato", voto.getParticipante().getNome());
+            dados.put("dataHora", voto.getDataHora() != null ? voto.getDataHora().format(formatador) : "Data desconhecida");
+            return dados;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(historicoFormatado);
     }
 }
