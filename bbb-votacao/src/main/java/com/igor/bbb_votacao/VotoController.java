@@ -3,6 +3,8 @@ package com.igor.bbb_votacao;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList; // Importante para o /resultados
+import java.util.HashMap;   // Importante para o /resultados
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -10,31 +12,27 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/votos")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // Isso resolve o erro de CORS!
 public class VotoController {
 
     private final VotoRepository votoRepository;
     private final ParticipanteRepository participanteRepository;
-    private final UsuarioRepository usuarioRepository; // Adicionamos o garçom de usuários
+    private final UsuarioRepository usuarioRepository;
 
-    // Atualizamos o construtor para injetar os 3 repositórios
     public VotoController(VotoRepository votoRepository, ParticipanteRepository participanteRepository, UsuarioRepository usuarioRepository) {
         this.votoRepository = votoRepository;
         this.participanteRepository = participanteRepository;
         this.usuarioRepository = usuarioRepository;
     }
 
-    // Agora a rota pede os dois IDs: em QUEM votou e QUEM votou
-    // Exemplo: POST http://localhost:8081/votos/1/2 (Usuário 2 votando no Participante 1)
     @PostMapping("/{participanteId}/{usuarioId}")
     public Voto registrarVoto(@PathVariable Integer participanteId, @PathVariable Integer usuarioId) {
-        
         Participante p = participanteRepository.findById(participanteId).orElseThrow();
-        Usuario u = usuarioRepository.findById(usuarioId).orElseThrow(); // Busca quem é o eleitor
+        Usuario u = usuarioRepository.findById(usuarioId).orElseThrow();
         
         Voto novoVoto = new Voto();
         novoVoto.setParticipante(p);
-        novoVoto.setUsuario(u); // Amarramos o voto ao usuário!
+        novoVoto.setUsuario(u); 
         
         return votoRepository.save(novoVoto);
     }
@@ -53,37 +51,25 @@ public class VotoController {
         return (votosDoParticipante * 100.0) / totalVotosGerais;
     }
 
-    // ========================== 
-    // HISTÓRICO COM DATA E HORA
-    // ========================== 
     @GetMapping("/historico")
     public ResponseEntity<Map<String, Long>> obterHistoricoVotos() {
-        
         List<Voto> todosVotos = votoRepository.findAll();
-
-        // MUDANÇA AQUI: Adicionamos o dia (dd) e o mês (MM) antes da hora!
-        // O resultado agora será algo como: "18/03 - 14:00"
         DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM - HH:00");
 
         Map<String, Long> historicoAgrupado = todosVotos.stream()
                 .filter(voto -> voto.getDataHora() != null) 
                 .collect(Collectors.groupingBy(
                         voto -> voto.getDataHora().format(formatador),
-                        TreeMap::new, // Mantém a ordem cronológica
+                        TreeMap::new, 
                         Collectors.counting() 
                 ));
 
         return ResponseEntity.ok(historicoAgrupado);
-        
     }
     
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<?> buscarVotosDoUsuario(@PathVariable Integer usuarioId) {
-        
-        // Busca no banco apenas os votos desse usuário específico
         List<Voto> votosDoUsuario = votoRepository.findByUsuarioId(usuarioId);
-
-        // Formata os dados para enviar um JSON limpo pro Front-end
         DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
 
         List<Map<String, Object>> historicoFormatado = votosDoUsuario.stream().map(voto -> {
@@ -95,5 +81,32 @@ public class VotoController {
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(historicoFormatado);
+    }
+
+    // ==========================================
+    // ROTA QUE FALTAVA: RESULTADOS EM TEMPO REAL (Para os gráficos)
+    // ==========================================
+    @GetMapping("/resultados")
+    public ResponseEntity<?> obterResultados() {
+        // Pega todos os participantes e todos os votos do banco
+        List<Participante> participantes = participanteRepository.findAll();
+        List<Voto> todosVotos = votoRepository.findAll();
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+
+        // Conta os votos de cada um
+        for (Participante p : participantes) {
+            long totalVotos = todosVotos.stream()
+                .filter(v -> v.getParticipante().getId().equals(p.getId()))
+                .count();
+
+            Map<String, Object> dados = new HashMap<>();
+            dados.put("id", p.getId());
+            dados.put("nome", p.getNome());
+            dados.put("votos", totalVotos);
+            ranking.add(dados);
+        }
+
+        return ResponseEntity.ok(ranking);
     }
 }

@@ -28,9 +28,10 @@ CREATE TABLE voto (
 );
 
 -- 5. Inserir os dados iniciais para o sistema já nascer funcionando
-INSERT INTO participante (nome) VALUES ('Participante 1'), ('Participante 2');
 
 INSERT INTO usuario (nome, email, senha, perfil) 
 VALUES 
-('Igor Silva Lima', 'admin@bbb.com', 'admin', 'ADMIN'),
+('Igor Silva Lima', 'admin@gmail.com', 'admin', 'ADMIN'),
 ('Eleitor Comum', 'eleitor@bbb.com', '123456', 'ELEITOR');
+
+
