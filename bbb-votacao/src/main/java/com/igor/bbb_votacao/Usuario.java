@@ -12,6 +12,7 @@ public class Usuario {
     private String nome;
     private String email;
     private String senha;
+    private String foto;
     private String perfil; // Vai guardar "ADMIN" ou "ELEITOR"
 
     // Getters e Setters
@@ -26,6 +27,9 @@ public class Usuario {
 
     public String getSenha() { return senha; }
     public void setSenha(String senha) { this.senha = senha; }
+
+    public String getFoto() { return foto; }
+    public void setFoto(String foto) { this.foto = foto; }
 
     public String getPerfil() { return perfil; }
     public void setPerfil(String perfil) { this.perfil = perfil; }
