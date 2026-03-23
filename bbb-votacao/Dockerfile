@@ -1,11 +1,11 @@
-# Estágio de construção (Compila o código)
-FROM maven:3.8.5-openjdk-25 AS build
+# Estágio de construção
+FROM maven:3-eclipse-temurin-25 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# Estágio de execução (Roda o servidor)
-FROM openjdk:25-jdk-slim
+# Estágio de execução
+FROM eclipse-temurin:25-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8081
